@@ -8,7 +8,7 @@ if [ "${cmd}" = "build-libs" ]; then
 
     for CONFIG_LIB in asan cov; do
         case "${CONFIG_LIB}" in
-            asan) CF="-g -O1"; LF="" ;;
+            asan) CF="-fsanitize=address -g -O1"; LF="-fsanitize=address" ;;
             cov)  CF="-fprofile-instr-generate -fcoverage-mapping -g -O0"; LF="-fprofile-instr-generate -fcoverage-mapping" ;;
         esac
 
@@ -37,9 +37,9 @@ if [ "${cmd}" = "harness" ]; then
     OUT=/out/${CONFIG}
     mkdir -p "${OUT}"
     case "${CONFIG}" in
-        debug)        CFH="-g -O0"; BUILD=/src/im-asan; SAN="-fsanitize=fuzzer" ;;
-        debug-asan)   CFH="-g -O0"; BUILD=/src/im-asan; SAN="-fsanitize=fuzzer" ;;
-        release-asan) CFH="-O2 -g"; BUILD=/src/im-asan; SAN="-fsanitize=fuzzer" ;;
+        debug)        CFH="-g -O0"; BUILD=/src/im-asan; SAN="-fsanitize=fuzzer,address" ;;
+        debug-asan)   CFH="-g -O0"; BUILD=/src/im-asan; SAN="-fsanitize=fuzzer,address" ;;
+        release-asan) CFH="-O2 -g"; BUILD=/src/im-asan; SAN="-fsanitize=fuzzer,address" ;;
         coverage)     CFH="-g -O0 -fprofile-instr-generate -fcoverage-mapping"; BUILD=/src/im-cov; SAN="-fsanitize=fuzzer" ;;
         *) echo "unknown config: ${CONFIG}" >&2; exit 2 ;;
     esac
