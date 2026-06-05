@@ -69,6 +69,7 @@ if [ "${cmd}" = "harness" ]; then
         -I "${FB_DIR}/src" \
         -I "${FB_DIR}/grpc" \
         -I "${FB_DIR}/tests" \
+        -I "${FB_DIR}/tests/fuzzer" \
         "/src/harness/flatbuffers_codegen_fuzzer.cc" \
         "${FLATC_LIB}" \
         "${FB_LIB}" \

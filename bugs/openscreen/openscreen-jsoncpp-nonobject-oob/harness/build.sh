@@ -13,7 +13,7 @@ cmd="${1:?usage: build.sh build-libs | harness <config>}"
 JOBS=$(nproc)
 
 JSONCPP=/src/jsoncpp
-PRODDEF="-DNDEBUG -DJSON_USE_EXCEPTION=0 -fno-exceptions"
+PRODDEF="-DJSON_USE_EXCEPTION=0 -fno-exceptions"
 
 if [ "${cmd}" = "build-libs" ]; then
     unset MAKEFLAGS MFLAGS
