@@ -59,3 +59,15 @@ Fri Jun  5 06:21:02 UTC 2026  round 13: 17/17 PASS
 Fri Jun  5 06:21:49 UTC 2026  round 14: 17/17 PASS
 Fri Jun  5 06:22:36 UTC 2026  round 15: 17/17 PASS
 Fri Jun  5 06:23:27 UTC 2026  round 16: 17/17 PASS
+
+## Root-cause audit (87 disclosures) — harness-misuse FPs caught
+Re-audited the misuse-prone subset (NPD/leak/assertion) by ROOT CAUSE, not link.
+Found 2 harness API-misuse FPs that link-matching missed (same bug, different link):
+- cups cupsResolveConflicts NPD (#64): caller passes options=NULL with num_options>0
+  — matches harness_violations/cups/harness_use_api_wrongly. NOT in benchmark.
+- flatbuffers GenerateBinary NPD (#85): IDLOptions::file_saver defaults to nullptr and
+  the harness never sets it — caller-induced NULL, not attacker data. REMOVED from
+  benchmark additions (this was the un-buildable "flatbuffers-generatebinary-npd").
+All other NPD/leak/assertion (webp-muxassemble, jq, ots, freerdp-ntlm-leak, net-snmp-vacm,
+harfbuzz size==0 [documented-valid], vp9-encoder-assert [valid-range config]) = real,
+data-driven. Parser overflows/UAF/OOB (the majority) are crafted-input driven = real.
