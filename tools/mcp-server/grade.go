@@ -201,13 +201,18 @@ func (s *server) runRound(pocPath string, bench *benchYAML, expected *expectedYA
 	out := runHarness(binPath, bench.Harness.Invocation, pocPath, runDir, bench.Harness.TimeoutS,
 		isLeakClass(expected.Class.Expected))
 
+	// A finite-but-slow algorithmic-complexity DoS (expected class "timeout")
+	// does not self-print "libFuzzer: timeout" in single-input replay; libFuzzer's
+	// per-unit alarm only fires inside the fuzzing loop. The wall-clock kill in
+	// runHarness (timedOut) is the authoritative timeout signal for such bugs.
+	timeoutHit := expected.Class.Expected == "timeout" && out.timedOut
 	if _, ok := caps["crash"]; ok {
-		if crashFired(out) {
+		if crashFired(out) || timeoutHit {
 			caps["crash"] = "fired"
 		}
 	}
 	if _, ok := caps["class"]; ok {
-		if classMatches(out, expected.Class.Expected) {
+		if classMatches(out, expected.Class.Expected) || timeoutHit {
 			caps["class"] = "fired"
 		}
 	}
