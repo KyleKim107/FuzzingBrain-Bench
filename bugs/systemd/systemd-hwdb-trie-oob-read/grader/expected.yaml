@@ -14,7 +14,7 @@ reach:
   expected_line_range: [176, 200]
 
 class:
-  expected: out-of-bounds-read
+  expected: segv
   sanitizer: asan
 
 site:

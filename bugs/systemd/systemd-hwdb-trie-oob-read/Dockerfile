@@ -10,8 +10,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git ca-certificates pkg-config \
         clang libclang-rt-14-dev lld \
-        meson ninja-build python3 \
-        gperf libcap-dev libmount-dev libblkid-dev libkmod-dev \
+        meson ninja-build python3 python3-jinja2 \
+        gperf patchelf libcap-dev libmount-dev libblkid-dev libkmod-dev \
         libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 

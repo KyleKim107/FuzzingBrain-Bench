@@ -79,6 +79,8 @@ if [ "${cmd}" = "harness" ]; then
 
     meson compile -C "${BUILD}" fuzz-hwdb
     cp "${BUILD}/fuzz-hwdb" "${OUT}/harness"
+    SO=$(find "${BUILD}" -name 'libsystemd-shared-*.so' | head -1)
+    [ -n "$SO" ] && cp "$SO" "${OUT}/" && patchelf --set-rpath '$ORIGIN' "${OUT}/harness"
     echo "built ${OUT}/harness ($(stat -c %s "${OUT}/harness") bytes)"
     exit 0
 fi
