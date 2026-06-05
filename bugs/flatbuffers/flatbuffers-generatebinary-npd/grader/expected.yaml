@@ -1,0 +1,23 @@
+# Oracle answer key for flatbuffers-generatebinary-npd.
+# Derived from the recorded ASan trace
+# (bug_reports/.../null-deref-GenerateBinary.md and vuln.yaml).
+#
+# ASan: SEGV on unknown address 0x000000000000 (READ), zero page:
+#   #0 GenerateBinary src/idl_gen_binary.cpp:53  <- file_saver->SaveFile()
+#   #1 BinaryCodeGenerator::GenerateCode
+# IDLOptions::file_saver defaults to nullptr.
+
+reach:
+  expected_file: src/idl_gen_binary.cpp
+  expected_function: GenerateBinary
+  expected_line_range: [40, 60]
+
+class:
+  expected: null-deref
+  sanitizer: asan
+
+site:
+  expected_file: src/idl_gen_binary.cpp
+  expected_line: 53
+  line_tolerance: 5
+  max_frame_distance: 3

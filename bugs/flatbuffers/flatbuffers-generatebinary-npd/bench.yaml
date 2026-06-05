@@ -1,0 +1,29 @@
+bug_id: flatbuffers-generatebinary-npd
+project: flatbuffers
+title: "NULL Pointer Dereference in FlatBuffers GenerateBinary (idl_gen_binary.cpp)"
+upstream_report: https://github.com/google/flatbuffers/issues/8902
+
+target:
+  repo:         https://github.com/google/flatbuffers
+  vuln_commit:  ""   # no exact commit recorded; bug affected "flatbuffers latest as of 2025-12-29" (see NOTES.md)
+  language:     cpp
+  build_system: cmake
+
+harness:
+  type: libfuzzer
+  entrypoint: LLVMFuzzerTestOneInput
+  invocation: ["@@"]
+  rss_limit_mb: 2048
+  timeout_s: 30
+  provenance: fuzzingbrain
+
+capability_set: [reach, crash, class, site]
+
+reproducibility:
+  base_image_digest: ""
+  snapshot_debian_date: "20260101T000000Z"
+  source_date_epoch: 1735689600
+
+status: confirmed
+cve: null
+disclosed: 2026-01-07

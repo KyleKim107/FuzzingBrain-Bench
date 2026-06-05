@@ -1,0 +1,69 @@
+crash_file: crash-c5e09a7f7c89302273a6b85c6bf68d51438575b4
+crash_sha1: c5e09a7f7c89302273a6b85c6bf68d51438575b4
+first_seen: '2026-04-13T12:15:21.835634+00:00'
+sanitizer: ubsan
+error_type: undefined-behavior-float-cast-overflow
+stack_top: saturate_cast_double_to_int
+stack_frames:
+  - saturate_cast_double_to_int (vpx_dsp/vpx_dsp_common.h:89)
+  - vp9_update_buffer_level_svc_preencode (vp9/encoder/vp9_ratectrl.c:295)
+  - vp9_rc_get_svc_params (vp9/encoder/vp9_ratectrl.c:2464)
+  - vp9_get_compressed_data (vp9/encoder/vp9_encoder.c:6474)
+  - vpx_codec_encode (vpx/src/vpx_encoder.c:218)
+batch_id: 20260413-104958-558ec7
+run_id: 94a8f534
+triage_status: verified
+verified_by: chrome-verify-crash skill
+verified_at: '2026-04-23T00:00:00Z'
+basic_verification: TP
+basic_verification_notes: |
+  Crash reproduces consistently under ASan+UBSan through the
+  vp9_encoder_svc_layer_config_fuzzer harness (debug build). Top UBSan
+  frame is saturate_cast_double_to_int at vpx_dsp_common.h:89, called
+  from vp9_update_buffer_level_svc_preencode (vp9_ratectrl.c:295).
+  Harness re-audit against the crash path found NO P1 / P2 / P3 / P4
+  violations: bitrate ladders are monotonic, ts_periodicity is a
+  multiple of ts_number_layers, g_w/g_h are even, API order matches
+  examples/vp9_spatial_svc_encoder.c. The crash site is the real
+  libvpx defect — lc->framerate is left at 0.0 for (sl, tl) slots
+  where sl >= 1 because vp9_update_layer_context_change_config's
+  NOLAYERING else-branch only initializes indices 0..number_temporal_layers-1.
+binary_reproduction: TP
+binary_reproduction_method: repro_app
+binary_reproduction_tool: repro_vp9_svc_layer_config
+binary_reproduction_notes: |
+  Path B. Minimal public-API repro program using only
+  vpx/vp8cx.h + vpx/vpx_encoder.h + vpx/vpx_image.h. Built against a
+  production-equivalent libvpx (NO --enable-debug) with
+  -fsanitize=address,undefined. UBSan fires at
+  vpx_dsp_common.h:89:10 via vpx_codec_encode ->
+  vp9_get_compressed_data -> vp9_rc_get_svc_params ->
+  vp9_update_buffer_level_svc_preencode. Same signature as harness.
+  The debug-only assert(ctx->pending_frame_count) at
+  vp9_cx_iface.c:1282 is absent (correctly elided by NDEBUG), so the
+  UBSan diagnostic is the reportable defect.
+root_cause_summary: |
+  (int)NaN at vpx_dsp/vpx_dsp_common.h:89 is undefined behavior
+  (C11 6.3.1.4). Triggered when vp9_update_buffer_level_svc_preencode
+  indexes a per-layer LAYER_CONTEXT whose lc->framerate is still 0.0
+  because neither vp9_init_layer_context nor the NOLAYERING branch of
+  vp9_update_layer_context_change_config covers all (sl, tl) slots.
+proxy_check_release_build: |
+  NDEBUG release build with ASan ONLY (no UBSan) ran cleanly on the
+  same input: no crash, no ASan error, exit 0. The production
+  consequence is SILENT rate-control state corruption
+  (implementation-defined integer in lrc->bits_off_target /
+  lrc->buffer_level), not a crash / OOB / UAF. Severity capped at
+  integrity:low, availability:low accordingly. UBSan-only abort on
+  fuzz-tooling builds.
+ready_for_upstream: true
+classification: keep_with_severity_caveat
+caveats: |
+  libvpx upstream tends to treat encoder-config-driven NaN->int UBSan
+  findings as P3 fuzz-tooling noise unless paired with a visible
+  production-build crash. Release-build proxy here runs clean; the
+  defect is real but user-visible impact is silent rate-control
+  corruption, not a crash. Recommend filing as code-quality /
+  defense-in-depth with CVSS:3.1 medium (6.1) but setting expectations
+  that upstream may downgrade to low / wontfix.
+notes: Verified 2026-04-23 via chrome-verify-crash SOP end-to-end.

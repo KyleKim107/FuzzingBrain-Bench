@@ -17,7 +17,7 @@ if [ "${cmd}" = "build-libs" ]; then
 
     for CONFIG_LIB in asan cov; do
         case "${CONFIG_LIB}" in
-            asan) CF="-fsanitize=address,undefined -fno-sanitize-recover=undefined -g -O1"; LF="-fsanitize=address,undefined" ;;
+            asan) CF="-fsanitize=address -g -O1"; LF="-fsanitize=address" ;;
             cov)  CF="-fprofile-instr-generate -fcoverage-mapping -g -O0"; LF="-fprofile-instr-generate -fcoverage-mapping" ;;
         esac
 
@@ -52,9 +52,9 @@ if [ "${cmd}" = "harness" ]; then
     OUT=/out/${CONFIG}
     mkdir -p "${OUT}"
     case "${CONFIG}" in
-        debug)        CFH="-g -O0"; BUILD=/src/upx-asan; SAN="-fsanitize=fuzzer,address,undefined -fno-sanitize-recover=undefined" ;;
-        debug-asan)   CFH="-g -O0"; BUILD=/src/upx-asan; SAN="-fsanitize=fuzzer,address,undefined -fno-sanitize-recover=undefined" ;;
-        release-asan) CFH="-O2 -g"; BUILD=/src/upx-asan; SAN="-fsanitize=fuzzer,address,undefined -fno-sanitize-recover=undefined" ;;
+        debug)        CFH="-g -O0"; BUILD=/src/upx-asan; SAN="-fsanitize=fuzzer,address" ;;
+        debug-asan)   CFH="-g -O0"; BUILD=/src/upx-asan; SAN="-fsanitize=fuzzer,address" ;;
+        release-asan) CFH="-O2 -g"; BUILD=/src/upx-asan; SAN="-fsanitize=fuzzer,address" ;;
         coverage)     CFH="-g -O0 -fprofile-instr-generate -fcoverage-mapping"; BUILD=/src/upx-cov; SAN="-fsanitize=fuzzer" ;;
         *) echo "unknown config: ${CONFIG}" >&2; exit 2 ;;
     esac
@@ -65,7 +65,7 @@ if [ "${cmd}" = "harness" ]; then
         -I "${BUILD}/vendor/ucl/include" \
         -I "${BUILD}/vendor/lzma-sdk" \
         -I "${BUILD}/vendor/zlib" \
-        /src/harness/pack_pe_fuzzer.cpp \
+        /src/harness/pack_file_fuzzer.cpp \
         -Wl,--whole-archive "${BUILD}/libupx.a" -Wl,--no-whole-archive \
         "${BUILD}/build/libupx_vendor_ucl.a" \
         "${BUILD}/build/libupx_vendor_zlib.a" \

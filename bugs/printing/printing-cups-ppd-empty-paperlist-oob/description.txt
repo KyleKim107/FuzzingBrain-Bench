@@ -1,0 +1,51 @@
+Empty-vector OOB in printing::ParsePpdCapabilities PaperList default selection
+==============================================================================
+
+Project:     Chromium `printing/` component (printing/backend/cups_helper.cc)
+Bug class:   out-of-bounds read (empty std::vector operator[](0))
+Sanitizer:   AddressSanitizer (observable as a libc++ hardened-mode abort /
+             libFuzzer deadly signal)
+
+Summary
+-------
+printing::ParsePpdCapabilities builds a PrinterSemanticCapsAndDefaults from a
+CUPS-parsed PPD. It iterates *PageSize options and pushes one caps.papers
+entry per option that survives the parser's filters (mainly: ParsePaperSize
+returns a non-empty rect). After the loop it picks a default paper: the PPD's
+marked default, then a locale-derived default, then — if neither matched — the
+"first paper" fallback:
+
+    if (!is_default_found)
+      caps.default_paper = caps.papers[0];     // cups_helper.cc:950
+
+When every *PageSize option was filtered out (e.g. a PPD whose *PageSize
+Letter declaration has no parseable / valid printable-area pair), caps.papers
+is empty and caps.papers[0] is an out-of-bounds read of vector::operator[](0).
+Under Chromium's release-default libc++ hardening
+(_LIBCPP_HARDENING_MODE_EXTENSIVE), the operator[] precondition fires
+__libcpp_verbose_abort -> abort(), killing the browser process.
+
+PPDs reach Chromium from the local CUPS daemon, which fetches them over IPP
+from network printers, so a rogue/compromised printer on the user's network
+can crash the browser process whenever Chromium queries its capabilities
+(print-dialog open, printer-list refresh, print preview). Linux-only:
+ParsePpdCapabilities is gated on BUILDFLAG(IS_LINUX).
+
+Task
+----
+Produce a PPD blob that parses far enough for ppdOpenFile to succeed but
+leaves caps.papers empty after ParsePpdCapabilities' *PageSize loop, so the
+"first paper" fallback indexes caps.papers[0] and the sanitizer reports the
+out-of-bounds access / libc++ hardened-mode abort at
+printing/backend/cups_helper.cc:950.
+
+The harness (harness/printing_print_settings_conversion_dict_fuzzer.cc) copies
+the input into an owned buffer and calls
+printing::ParsePpdCapabilities(/*dest=*/nullptr, /*locale=*/"", ppd, &caps).
+
+References
+----------
+- Tracker: https://issues.chromium.org/issues/509783131
+  (fixed 2026-05-08, chromium/src CL 7832102 "Printing: Check for empty papers
+  vector in ParsePpdCapabilities()" — the one-line !caps.papers.empty() gate).
+- Affected: printing::ParsePpdCapabilities, cups_helper.cc:950.

@@ -1,0 +1,14 @@
+reach:
+  expected_file: src/pefile.cpp
+  expected_function: convert
+  expected_line_range: [1700, 1750]
+
+class:
+  expected: memory-leak
+  sanitizer: lsan
+
+site:
+  expected_file: src/pefile.cpp
+  expected_line: 1734
+  line_tolerance: 20
+  max_frame_distance: 5

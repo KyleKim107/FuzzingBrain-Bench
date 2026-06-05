@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6
 FROM debian:bookworm-slim
-ARG VULN_COMMIT=ab98f61bbd784b9654118613996bc145a764a682
+ARG VULN_COMMIT=1ebd3356f36780960a03354a8ded23410ebc7e79
 ARG SOURCE_DATE_EPOCH=1735689600
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
 ENV DEBIAN_FRONTEND=noninteractive
@@ -16,7 +16,7 @@ RUN git clone https://github.com/upx/upx /src/upx \
  && git -C /src/upx checkout ${VULN_COMMIT} \
  && git -C /src/upx submodule update --init --recursive
 
-COPY harness/pack_pe_fuzzer.cpp /src/harness/pack_pe_fuzzer.cpp
+COPY harness/pack_file_fuzzer.cpp /src/harness/pack_file_fuzzer.cpp
 COPY harness/build.sh             /src/harness/build.sh
 RUN chmod +x /src/harness/build.sh
 
