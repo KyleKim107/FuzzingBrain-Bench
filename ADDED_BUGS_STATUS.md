@@ -41,3 +41,14 @@ Grader extended to recognize wall-clock timedOut for the timeout class.
 
 ## Grade test log
 Fri Jun  5 06:08:10 UTC 2026  full sweep: 17/17 PASS (rounds 1-6 all 17/17)
+Fri Jun  5 06:09:35 UTC 2026  round 7: 17/17 PASS
+Fri Jun  5 06:10:31 UTC 2026  round 8: 17/17 PASS
+Fri Jun  5 06:11:20 UTC 2026  round 9: 17/17 PASS
+
+## upx investigation result (overnight)
+upx-pe-loadconf: tried the real vulnerable version (v5.1.0, commit 779acb1) —
+builds fine, but the recorded 370B poc still does NOT fire. Root cause is the
+HARNESS, not the commit: the bench reuses the shared `pack_file_fuzzer` (drives
+`upx -1 -f -q` pack), but the recorded poc belongs to the original PE-specific
+`pack_pe_fuzzer`, whose source was NOT preserved in the records. Blocked on the
+real harness source.

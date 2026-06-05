@@ -5,7 +5,7 @@ upstream_report: https://github.com/upx/upx/issues/950
 
 target:
   repo:         https://github.com/upx/upx
-  vuln_commit:  1ebd3356f36780960a03354a8ded23410ebc7e79
+  vuln_commit:  779acb1cd45277f55c8e57c943900f37cbac1207
   language:     cpp
   build_system: cmake
 

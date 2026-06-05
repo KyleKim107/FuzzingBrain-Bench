@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6
 FROM debian:bookworm-slim
-ARG VULN_COMMIT=1ebd3356f36780960a03354a8ded23410ebc7e79
+ARG VULN_COMMIT=779acb1cd45277f55c8e57c943900f37cbac1207
 ARG SOURCE_DATE_EPOCH=1735689600
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
 ENV DEBIAN_FRONTEND=noninteractive
@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git clone https://github.com/upx/upx /src/upx \
- && git -C /src/upx fetch --depth 1 origin ${VULN_COMMIT} \
  && git -C /src/upx checkout ${VULN_COMMIT} \
  && git -C /src/upx submodule update --init --recursive
 
