@@ -52,3 +52,10 @@ HARNESS, not the commit: the bench reuses the shared `pack_file_fuzzer` (drives
 `upx -1 -f -q` pack), but the recorded poc belongs to the original PE-specific
 `pack_pe_fuzzer`, whose source was NOT preserved in the records. Blocked on the
 real harness source.
+Fri Jun  5 06:18:38 UTC 2026  round 10: 17/17 PASS
+Fri Jun  5 06:19:28 UTC 2026  round 11: 17/17 PASS
+Fri Jun  5 06:20:16 UTC 2026  round 12: 17/17 PASS
+Fri Jun  5 06:21:02 UTC 2026  round 13: 17/17 PASS
+Fri Jun  5 06:21:49 UTC 2026  round 14: 17/17 PASS
+Fri Jun  5 06:22:36 UTC 2026  round 15: 17/17 PASS
+Fri Jun  5 06:23:27 UTC 2026  round 16: 17/17 PASS
