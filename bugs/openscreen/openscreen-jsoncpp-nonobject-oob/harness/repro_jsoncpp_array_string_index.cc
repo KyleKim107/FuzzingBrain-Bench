@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
   // index with a string key. On an arrayValue root this aborts.
   const Json::Value& root = parsed;
   static const std::string_view kMaxSampleRate = "maxSampleRate";
-  const Json::Value& v = root[kMaxSampleRate];  // <-- aborts here
+  const Json::Value& v = root[std::string(kMaxSampleRate)];  // <-- aborts here
   std::fprintf(stderr, "lookup returned type=%d\n", (int)v.type());
   return 0;
 }
