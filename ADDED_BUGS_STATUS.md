@@ -71,3 +71,10 @@ Found 2 harness API-misuse FPs that link-matching missed (same bug, different li
 All other NPD/leak/assertion (webp-muxassemble, jq, ots, freerdp-ntlm-leak, net-snmp-vacm,
 harfbuzz size==0 [documented-valid], vp9-encoder-assert [valid-range config]) = real,
 data-driven. Parser overflows/UAF/OOB (the majority) are crafted-input driven = real.
+
+## NEW addition after audit: cups-utf8-charset-overflow (grade PASS)
+The audit confirmed cups cupsUTF8ToCharset (#63) is a REAL data-driven bug (distinct
+from the cupsResolveConflicts harness-misuse #64). Built it: focused fuzz_transcode
+harness, libcups built ASan-via-OPTIM (configure stays bare so its run-test passes
+under buildkit), poc [0x0A,0xC1]. Grade PASS — reach+crash+class(heap-buffer-overflow)
++site(transcode.c:245) all fire. Benchmark 70 -> 71.
