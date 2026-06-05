@@ -69,9 +69,9 @@ if [ "${cmd}" = "harness" ]; then
         -I "${BUILD}/include" \
         -I "${BUILD}/agent/mibgroup" \
         /src/harness/snmp_agent_e2e_fuzzer.c \
-        "${BUILD}/agent/.libs/libnetsnmpagent.a" \
-        "${BUILD}/agent/mibgroup/.libs/libnetsnmpmibs.a" \
-        "${BUILD}/snmplib/.libs/libnetsnmp.a" \
+        "$(find ${BUILD} -name libnetsnmpagent.a|head -1)" \
+        "$(find ${BUILD} -name libnetsnmpmibs.a|head -1)" \
+        "$(find ${BUILD} -name libnetsnmp.a|head -1)" \
         -lpthread -lm \
         -o "${OUT}/harness"
 

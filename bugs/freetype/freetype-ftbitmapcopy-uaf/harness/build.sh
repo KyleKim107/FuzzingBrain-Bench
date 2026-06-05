@@ -55,7 +55,8 @@ if [ "${cmd}" = "harness" ]; then
         *) echo "unknown config: ${CONFIG}" >&2; exit 2 ;;
     esac
 
-    LIBFT_A=$(find "${BUILD}" -name 'libfreetype.a' -type f | head -1)
+    LIBFT_A=$(find "${BUILD}" -name 'libfreetype*.a' -type f | head -1)
+    [ -n "${LIBFT_A}" ] || { echo "ERROR: libfreetype.a not found under ${BUILD}"; find /src -name 'libfreetype*' ; exit 3; }
 
     clang \
         ${CFLAGS_H} \
@@ -63,7 +64,7 @@ if [ "${cmd}" = "harness" ]; then
         -fmacro-prefix-map=/src/= \
         -I "/src/freetype/include" \
         "/src/harness/ftfuzzer_glyph.c" \
-        "${LIBFT_A}" \
+        -Wl,--start-group "${LIBFT_A}" -Wl,--end-group \
         -lm -lpthread -ldl \
         -o "${OUT}/harness"
 

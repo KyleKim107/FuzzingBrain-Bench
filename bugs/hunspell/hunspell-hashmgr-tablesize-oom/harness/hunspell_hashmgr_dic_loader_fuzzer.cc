@@ -126,7 +126,7 @@ extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/) {
     if (env && *env) {
         g_workspace = env;
     } else {
-        g_workspace = "/data3/ze/O2-security-platform/workspace/chrome-fuzz/hunspell";
+        g_workspace = "/tmp/hunspell_fuzz_workdir";
     }
     struct stat st;
     if (::stat(g_workspace.c_str(), &st) != 0) {

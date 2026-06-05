@@ -20,7 +20,7 @@ reach:
   expected_line_range: [330, 400]
 
 class:
-  expected: oob-read
+  expected: segv
   sanitizer: asan
 
 site:
