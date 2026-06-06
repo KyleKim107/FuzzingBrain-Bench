@@ -6,7 +6,7 @@
 # a Chromium GN target that cannot be built standalone outside a full chromium
 # checkout (see NOTES.md), so this bundle reproduces the SAME library frame
 # via Path B: build jsoncpp 1.9.4 statically with openscreen's production
-# defines (-DNDEBUG -DJSON_USE_EXCEPTION=0 -fno-exceptions) and link the
+# defines (-DJSON_USE_EXCEPTION=0 -fno-exceptions) and link the
 # public-API repro that uses the identical `const Json::Value&; v[key]` shape.
 set -euo pipefail
 cmd="${1:?usage: build.sh build-libs | harness <config>}"
