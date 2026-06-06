@@ -78,3 +78,22 @@ from the cupsResolveConflicts harness-misuse #64). Built it: focused fuzz_transc
 harness, libcups built ASan-via-OPTIM (configure stays bare so its run-test passes
 under buildkit), poc [0x0A,0xC1]. Grade PASS — reach+crash+class(heap-buffer-overflow)
 +site(transcode.c:245) all fire. Benchmark 70 -> 71.
+
+## Completion push (round 2)
+- openscreen-jsoncpp-error-message-overflow: FIXED -> grade PASS (jsoncpp getLocation
+  CR-LF heap-OOB; the earlier failure was a missing libclang-rt at link time).
+- openscreen-jsoncpp-nonobject-oob: FIXED -> grade PASS (un-defined NDEBUG so the
+  jsoncpp find() assert fires; SIGABRT). Required a grader fix: signalName() read the
+  real terminating signal via syscall.WaitStatus — Go renders SIGABRT as "aborted",
+  so bare assert-aborts (no sanitizer trailer) were previously undetectable. caps=[crash].
+- 20 of my entries now grade-PASS. Benchmark: 68/71 entries grade-PASS.
+
+## Remaining 3 — blocked by genuinely-missing materials
+- upx-pe-loadconf-overflow: the stored 370-byte poc is NOT a valid PE (no MZ magic);
+  it is a libFuzzer-minimized artifact that does not stand-alone reproduce. upx ignores
+  non-PE input, so the pack harness never reaches processLoadConf. Needs a hand-crafted
+  malformed PE32 with a bad LOAD_CONFIG directory. Low upstream impact (pack-path).
+- upx-pe-resource-memleak: the leak is on the UNPACK path (upx -t/-d); the shared pack
+  harness (upx -1) cannot reach it at all.
+- printing-cups-ppd-empty-paperlist-oob: Chromium component; the local chromium checkout's
+  `gn gen` fails (.gn:150 exec_script_allowlist), so the fuzzer target cannot be built.
