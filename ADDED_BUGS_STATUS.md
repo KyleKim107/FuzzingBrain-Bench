@@ -97,3 +97,39 @@ under buildkit), poc [0x0A,0xC1]. Grade PASS — reach+crash+class(heap-buffer-o
   harness (upx -1) cannot reach it at all.
 - printing-cups-ppd-empty-paperlist-oob: Chromium component; the local chromium checkout's
   `gn gen` fails (.gn:150 exec_script_allowlist), so the fuzzer target cannot be built.
+
+---
+
+## Round 3 (2026-06-08) — benchmark 71 → 72; corpus finalized at 72
+
+Reconciled the full corpus against the 86 publicly-verifiable disclosures (fixed/confirmed,
+public report links). Of the 86: ~9 are non-crash logic/web/race vulns (auth0 token,
+goose OIDC/SSRF/deeplink, curl redirect, brotli TOCTOU, cups OAuth redirect, paddle traversal,
+chromium skia data-race) — out of scope for a crash-reproduction benchmark. Crash-reproducible
+target ≈ 77.
+
+### Added (1) — grade-PASS
+- **mongoose-mqtt-nextprop-oob** — heap-buffer-overflow (OOB read) in `mg_mqtt_next_prop`
+  MQTT5 STRING_PAIR property parsing (upstream issue #3419, closed 2026-01-27). vuln_commit
+  b313d697 (shared with mg-match; pre-fix), asan, focused harness (mg_mqtt_parse →
+  mg_mqtt_next_prop), poc = O2 crash_input minus the multi-test selector byte. Crash at
+  mongoose.c:4132. grade PASS (reach/crash/class/site, 3-round unanimity).
+
+### Resolved-as-covered (not separate bugs)
+- openscreen ReceiverMessage::Parse (#505902444) and SenderMessage::Parse (#505947418) are the
+  SAME jsoncpp non-object find() abort already represented by `openscreen-jsoncpp-nonobject-oob`
+  (#505902443) — one root cause, three reporter entry points. No new bundle.
+
+### Documented hard blockers (corpus capped at 72; not pursued)
+- **imagemagick-DCM** (GHSA-8pj9 / CVE-2026-49218): NO reference PoC anywhere; requires crafting a
+  multi-element DICOM that reaches the post-loop 0-dimension state (dcm.c:4376 path) — the obvious
+  0-column case is rejected at dcm.c:3897. Deferred (see discovered-candidates/).
+- **pdfium-xobject** (OOM) and **printing-cups-ppd-empty-paperlist-oob**: Chromium components; the
+  chromium checkout `gn gen` fails (.gn:150 exec_script_allowlist) so the fuzzer targets cannot be
+  regenerated.
+- **upx-pe-loadconf**: recorded poc does not fire even on the real vulnerable revision (v5.1.0,
+  commit 779acb1) — poc likely invalid; needs fresh PoV.
+- **upx-pe-resource**: unpack-path bug; the shared pack harness never reaches it (needs a separate
+  unpack harness).
+
+Final corpus: **72 git-tracked bugs**, all grade-PASS (3-round unanimity).
