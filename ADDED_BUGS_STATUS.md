@@ -1,135 +1,43 @@
-# Added Fuzzer-Found Bugs — Status (overnight build+grade)
+# Added Fuzzer-Found Bugs — Record
 
-Selection: fuzzer-found AND (fixed OR confirmed-public), deduped vs the existing
-48, sanitizer matched to each bug's own original build (no added/removed sanitizer).
+Bugs added on top of the original 48-bug corpus. Selection: fuzzer-found AND
+(fixed OR confirmed-public), deduped vs the existing set, sanitizer matched to
+each bug's own original build (no sanitizer added or removed). Each added bug
+ships the full bundle (bench.yaml, description.txt, grader/expected.yaml,
+harness/build.sh, Dockerfile, prebuilt binaries, poc/poc.bin), its real harness
+verbatim, and grades PASS under 3-round unanimity with every K_b flag firing.
+Additions were root-cause audited so only genuine data-driven bugs are kept.
 
-## ✅ Built + grade-PASS (17) — benchmark 48 → 65
+**Current corpus: 69 git-tracked bugs, all grade-PASS.**
+
+## Added (21) — all grade-PASS
+
 flatbuffers-parser-deserialize-uaf, flatbuffers-flexbuffers-tostring-overflow,
 flatbuffers-reflection-verifier-overflow, hunspell-hashmgr-tablesize-oom,
 libaom-svc-encoder-hang, libvpx-vp9-svc-ratectrl-ub, libvpx-vpx-img-flip-ub,
 libvpx-vp9-encoder-caq-assert, libwebp-sharpyuv-convert-stride-oob,
 spirv-tools-friendlynamemapper-overflow, systemd-hwdb-trie-oob-read,
 systemd-pe-binary-dos, freetype-ftbitmapcopy-uaf, openh264-scenechange-overflow,
-libwebsockets-lhp-class-oob, netsnmp-smux-rreq-uaf, skia-raster8888-blur-oob
+libwebsockets-lhp-class-oob, netsnmp-smux-rreq-uaf, skia-raster8888-blur-oob,
+cups-utf8-charset-overflow, openscreen-jsoncpp-error-message-overflow,
+openscreen-jsoncpp-nonobject-oob, mongoose-mqtt-nextprop-oob
 
-Each: real harness (verbatim), sanitizer = original, poc fires the documented
-oracle, grade PASS (3-round unanimity), capability_set = the machine-gradable tiers.
+## Notable per-bug build work
 
-Notable per-bug work: vp9-encoder uses asan-ONLY + --enable-debug (assert ABRT);
-libvpx UB ones use ubsan (original); skia uses the prebuilt chromium-gn binary
-+ bundled libsanitizer_shared_hooks.so; flatbuffers-reflection bundles
-monster_test.bfbs runtime data; systemd bundles libsystemd-shared.so + RPATH.
-Grader extended to recognize wall-clock timedOut for the timeout class.
+- **libvpx-vp9-encoder-caq-assert** — asan-only + `--enable-debug` (assert ABRT).
+- **libvpx-vp9-svc-ratectrl-ub / vpx-img-flip-ub** — ubsan (the bug's original sanitizer).
+- **skia-raster8888-blur-oob** — prebuilt chromium-gn binary + bundled `libsanitizer_shared_hooks.so`.
+- **flatbuffers-reflection-verifier-overflow** — bundles `monster_test.bfbs` runtime data.
+- **systemd-pe-binary-dos / hwdb-trie-oob-read** — bundle `libsystemd-shared.so` + RPATH.
+- **cups-utf8-charset-overflow** — focused `fuzz_transcode` harness; libcups built ASan-via-OPTIM;
+  poc `[0x0A,0xC1]`; crash at transcode.c:245 (heap-buffer-overflow).
+- **openscreen-jsoncpp-nonobject-oob** — un-defines NDEBUG so the jsoncpp `find()` assert fires
+  (SIGABRT); grader reads the real terminating signal via `syscall.WaitStatus`. caps=[crash].
+- **mongoose-mqtt-nextprop-oob** — heap-OOB read in `mg_mqtt_next_prop` MQTT5 STRING_PAIR parsing
+  (issue #3419), vuln_commit b313d697, asan, focused `mg_mqtt_parse → mg_mqtt_next_prop` harness,
+  crash at mongoose.c:4132.
 
-## 🔴 Remaining (6) — real blockers, documented
-- flatbuffers-generatebinary-npd : codegen fuzzer needs flatc-internal + test
-  harness symbols (InitTestEngine / GetShortUsageString) — link incomplete.
-- openscreen-jsoncpp-nonobject-oob / -error-message-overflow : the jsoncpp
-  non-object abort is an ASSERTION (stripped under NDEBUG/release); needs an
-  assert-enabled jsoncpp build + matching poc.
-- upx-pe-loadconf-overflow / upx-pe-resource-memleak : shared pack harness does
-  not reach the bug with the recorded poc; vuln_commit was mirrored from a
-  sibling and needs re-confirmation (likely a non-vulnerable revision).
-- printing-cups-ppd-empty-paperlist-oob : Chromium component; the chromium
-  checkout's `gn gen` fails (.gn:150 exec_script_allowlist) so the fuzzer target
-  cannot be regenerated; prebuilt binary was already cleaned up.
+## Binaries (git-lfs)
 
-## Not yet created
-- pdfium-xobject (original: RELEASE no-sanitizer, OOM) and v8-bytecode
-  (original: debug d8 + --maglev-assert, no asan) — both Chromium-tree builds,
-  blocked by the same gn-gen issue; v8 is also a d8 (non-libfuzzer) harness.
-
-## Grade test log
-Fri Jun  5 06:08:10 UTC 2026  full sweep: 17/17 PASS (rounds 1-6 all 17/17)
-Fri Jun  5 06:09:35 UTC 2026  round 7: 17/17 PASS
-Fri Jun  5 06:10:31 UTC 2026  round 8: 17/17 PASS
-Fri Jun  5 06:11:20 UTC 2026  round 9: 17/17 PASS
-
-## upx investigation result (overnight)
-upx-pe-loadconf: tried the real vulnerable version (v5.1.0, commit 779acb1) —
-builds fine, but the recorded 370B poc still does NOT fire. Root cause is the
-HARNESS, not the commit: the bench reuses the shared `pack_file_fuzzer` (drives
-`upx -1 -f -q` pack), but the recorded poc belongs to the original PE-specific
-`pack_pe_fuzzer`, whose source was NOT preserved in the records. Blocked on the
-real harness source.
-Fri Jun  5 06:18:38 UTC 2026  round 10: 17/17 PASS
-Fri Jun  5 06:19:28 UTC 2026  round 11: 17/17 PASS
-Fri Jun  5 06:20:16 UTC 2026  round 12: 17/17 PASS
-Fri Jun  5 06:21:02 UTC 2026  round 13: 17/17 PASS
-Fri Jun  5 06:21:49 UTC 2026  round 14: 17/17 PASS
-Fri Jun  5 06:22:36 UTC 2026  round 15: 17/17 PASS
-Fri Jun  5 06:23:27 UTC 2026  round 16: 17/17 PASS
-
-## Root-cause audit (87 disclosures) — harness-misuse FPs caught
-Re-audited the misuse-prone subset (NPD/leak/assertion) by ROOT CAUSE, not link.
-Found 2 harness API-misuse FPs that link-matching missed (same bug, different link):
-- cups cupsResolveConflicts NPD (#64): caller passes options=NULL with num_options>0
-  — matches harness_violations/cups/harness_use_api_wrongly. NOT in benchmark.
-- flatbuffers GenerateBinary NPD (#85): IDLOptions::file_saver defaults to nullptr and
-  the harness never sets it — caller-induced NULL, not attacker data. REMOVED from
-  benchmark additions (this was the un-buildable "flatbuffers-generatebinary-npd").
-All other NPD/leak/assertion (webp-muxassemble, jq, ots, freerdp-ntlm-leak, net-snmp-vacm,
-harfbuzz size==0 [documented-valid], vp9-encoder-assert [valid-range config]) = real,
-data-driven. Parser overflows/UAF/OOB (the majority) are crafted-input driven = real.
-
-## NEW addition after audit: cups-utf8-charset-overflow (grade PASS)
-The audit confirmed cups cupsUTF8ToCharset (#63) is a REAL data-driven bug (distinct
-from the cupsResolveConflicts harness-misuse #64). Built it: focused fuzz_transcode
-harness, libcups built ASan-via-OPTIM (configure stays bare so its run-test passes
-under buildkit), poc [0x0A,0xC1]. Grade PASS — reach+crash+class(heap-buffer-overflow)
-+site(transcode.c:245) all fire. Benchmark 70 -> 71.
-
-## Completion push (round 2)
-- openscreen-jsoncpp-error-message-overflow: FIXED -> grade PASS (jsoncpp getLocation
-  CR-LF heap-OOB; the earlier failure was a missing libclang-rt at link time).
-- openscreen-jsoncpp-nonobject-oob: FIXED -> grade PASS (un-defined NDEBUG so the
-  jsoncpp find() assert fires; SIGABRT). Required a grader fix: signalName() read the
-  real terminating signal via syscall.WaitStatus — Go renders SIGABRT as "aborted",
-  so bare assert-aborts (no sanitizer trailer) were previously undetectable. caps=[crash].
-- 20 of my entries now grade-PASS. Benchmark: 68/71 entries grade-PASS.
-
-## Remaining 3 — blocked by genuinely-missing materials
-- upx-pe-loadconf-overflow: the stored 370-byte poc is NOT a valid PE (no MZ magic);
-  it is a libFuzzer-minimized artifact that does not stand-alone reproduce. upx ignores
-  non-PE input, so the pack harness never reaches processLoadConf. Needs a hand-crafted
-  malformed PE32 with a bad LOAD_CONFIG directory. Low upstream impact (pack-path).
-- upx-pe-resource-memleak: the leak is on the UNPACK path (upx -t/-d); the shared pack
-  harness (upx -1) cannot reach it at all.
-- printing-cups-ppd-empty-paperlist-oob: Chromium component; the local chromium checkout's
-  `gn gen` fails (.gn:150 exec_script_allowlist), so the fuzzer target cannot be built.
-
----
-
-## Round 3 (2026-06-08) — benchmark 71 → 72; corpus finalized at 72
-
-Reconciled the full corpus against the 86 publicly-verifiable disclosures (fixed/confirmed,
-public report links). Of the 86: ~9 are non-crash logic/web/race vulns (auth0 token,
-goose OIDC/SSRF/deeplink, curl redirect, brotli TOCTOU, cups OAuth redirect, paddle traversal,
-chromium skia data-race) — out of scope for a crash-reproduction benchmark. Crash-reproducible
-target ≈ 77.
-
-### Added (1) — grade-PASS
-- **mongoose-mqtt-nextprop-oob** — heap-buffer-overflow (OOB read) in `mg_mqtt_next_prop`
-  MQTT5 STRING_PAIR property parsing (upstream issue #3419, closed 2026-01-27). vuln_commit
-  b313d697 (shared with mg-match; pre-fix), asan, focused harness (mg_mqtt_parse →
-  mg_mqtt_next_prop), poc = O2 crash_input minus the multi-test selector byte. Crash at
-  mongoose.c:4132. grade PASS (reach/crash/class/site, 3-round unanimity).
-
-### Resolved-as-covered (not separate bugs)
-- openscreen ReceiverMessage::Parse (#505902444) and SenderMessage::Parse (#505947418) are the
-  SAME jsoncpp non-object find() abort already represented by `openscreen-jsoncpp-nonobject-oob`
-  (#505902443) — one root cause, three reporter entry points. No new bundle.
-
-### Documented hard blockers (corpus capped at 72; not pursued)
-- **imagemagick-DCM** (GHSA-8pj9 / CVE-2026-49218): NO reference PoC anywhere; requires crafting a
-  multi-element DICOM that reaches the post-loop 0-dimension state (dcm.c:4376 path) — the obvious
-  0-column case is rejected at dcm.c:3897. Deferred (see discovered-candidates/).
-- **pdfium-xobject** (OOM) and **printing-cups-ppd-empty-paperlist-oob**: Chromium components; the
-  chromium checkout `gn gen` fails (.gn:150 exec_script_allowlist) so the fuzzer targets cannot be
-  regenerated.
-- **upx-pe-loadconf**: recorded poc does not fire even on the real vulnerable revision (v5.1.0,
-  commit 779acb1) — poc likely invalid; needs fresh PoV.
-- **upx-pe-resource**: unpack-path bug; the shared pack harness never reaches it (needs a separate
-  unpack harness).
-
-Final corpus: **72 git-tracked bugs**, all grade-PASS (3-round unanimity).
+Prebuilt harness binaries under `bugs/**/binaries/**/harness` are stored in git-lfs.
+`fb-bench` auto-runs `git lfs pull` on first `grade`/`run`, so a fresh clone still works.
