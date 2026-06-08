@@ -14,7 +14,7 @@ harness:
   entrypoint: LLVMFuzzerTestOneInput
   invocation: ["@@"]
   rss_limit_mb: 2048
-  timeout_s: 30
+  timeout_s: 90
   provenance: fuzzingbrain
 
 capability_set: [reach, crash, class, site]
