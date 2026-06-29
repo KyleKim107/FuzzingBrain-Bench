@@ -205,6 +205,14 @@
       "bug_class": "stack-overflow"
     },
     {
+      "id": "imagemagick-dcm-invalid-dimensions",
+      "project": "ImageMagick",
+      "title": "Policy bypass in DCM decoder returns image with invalid dimensions",
+      "status": "fixed",
+      "report": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-8pj9-6897-74xc",
+      "bug_class": "abort"
+    },
+    {
       "id": "jq-dump-op-npd",
       "project": "jq",
       "title": "NULL Pointer Dereference in dump_operation",
