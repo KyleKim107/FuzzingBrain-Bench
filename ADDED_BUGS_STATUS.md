@@ -8,9 +8,9 @@ harness/build.sh, Dockerfile, prebuilt binaries, poc/poc.bin), its real harness
 verbatim, and grades PASS under 3-round unanimity with every K_b flag firing.
 Additions were root-cause audited so only genuine data-driven bugs are kept.
 
-**Current corpus: 69 git-tracked bugs, all grade-PASS.**
+**Current corpus: 70 git-tracked bugs (69 grade-PASS; 1 pending PoC).**
 
-## Added (21) — all grade-PASS
+## Added (22) — 21 grade-PASS, 1 pending PoC
 
 flatbuffers-parser-deserialize-uaf, flatbuffers-flexbuffers-tostring-overflow,
 flatbuffers-reflection-verifier-overflow, hunspell-hashmgr-tablesize-oom,
@@ -20,7 +20,8 @@ spirv-tools-friendlynamemapper-overflow, systemd-hwdb-trie-oob-read,
 systemd-pe-binary-dos, freetype-ftbitmapcopy-uaf, openh264-scenechange-overflow,
 libwebsockets-lhp-class-oob, netsnmp-smux-rreq-uaf, skia-raster8888-blur-oob,
 cups-utf8-charset-overflow, openscreen-jsoncpp-error-message-overflow,
-openscreen-jsoncpp-nonobject-oob, mongoose-mqtt-nextprop-oob
+openscreen-jsoncpp-nonobject-oob, mongoose-mqtt-nextprop-oob,
+imagemagick-dcm-invalid-dimensions (PoC import pending)
 
 ## Notable per-bug build work
 
