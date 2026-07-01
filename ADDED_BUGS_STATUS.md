@@ -8,9 +8,9 @@ harness/build.sh, Dockerfile, prebuilt binaries, poc/poc.bin), its real harness
 verbatim, and grades PASS under 3-round unanimity with every K_b flag firing.
 Additions were root-cause audited so only genuine data-driven bugs are kept.
 
-**Current corpus: 70 git-tracked bugs (69 grade-PASS; 1 pending PoC).**
+**Current corpus: 70 git-tracked bugs (70 grade-PASS).**
 
-## Added (22) — 21 grade-PASS, 1 pending PoC
+## Added (22) — 22 grade-PASS
 
 flatbuffers-parser-deserialize-uaf, flatbuffers-flexbuffers-tostring-overflow,
 flatbuffers-reflection-verifier-overflow, hunspell-hashmgr-tablesize-oom,
@@ -21,7 +21,7 @@ systemd-pe-binary-dos, freetype-ftbitmapcopy-uaf, openh264-scenechange-overflow,
 libwebsockets-lhp-class-oob, netsnmp-smux-rreq-uaf, skia-raster8888-blur-oob,
 cups-utf8-charset-overflow, openscreen-jsoncpp-error-message-overflow,
 openscreen-jsoncpp-nonobject-oob, mongoose-mqtt-nextprop-oob,
-imagemagick-dcm-invalid-dimensions (PoC import pending)
+imagemagick-dcm-invalid-dimensions
 
 ## Notable per-bug build work
 
@@ -37,6 +37,11 @@ imagemagick-dcm-invalid-dimensions (PoC import pending)
 - **mongoose-mqtt-nextprop-oob** — heap-OOB read in `mg_mqtt_next_prop` MQTT5 STRING_PAIR parsing
   (issue #3419), vuln_commit b313d697, asan, focused `mg_mqtt_parse → mg_mqtt_next_prop` harness,
   crash at mongoose.c:4132.
+- **imagemagick-dcm-invalid-dimensions** — static ImageMagick + dynamic libxml2/ICU; harness bundles
+  `libxml2.so.2`/`libicuuc.so.72`/`libicudata.so.72` + `patchelf --force-rpath` (plain `--set-rpath`
+  sets non-transitive `DT_RUNPATH`, so libxml2 can't find its own ICU deps). Coverage config also
+  needs `-DNDEBUG` so the harness's post-return `assert()` doesn't abort before `.profraw` flushes.
+  See [NOTES.md](bugs/imagemagick/imagemagick-dcm-invalid-dimensions/NOTES.md).
 
 ## Binaries (git-lfs)
 
