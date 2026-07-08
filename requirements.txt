@@ -1,0 +1,12 @@
+# Runtime dependencies — mirrors [project.dependencies] in pyproject.toml.
+# The canonical install is `pip install -e .`; this file is provided for
+# convenience (e.g. `pip install -r requirements.txt`). Keep in sync with
+# pyproject.toml.
+anthropic>=0.40.0
+openai>=1.40.0
+google-genai>=0.3.0
+pyyaml>=6.0
+rich>=13.0
+
+# Dev / tests (pyproject [project.optional-dependencies].dev):
+#   pytest>=7.0
