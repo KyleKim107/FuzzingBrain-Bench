@@ -78,7 +78,21 @@ sees `harness_output`, never the verdict — `episode.py:296`).
   (read_file / grade / other tool results / assistant_text / system / tools /
   notes) → which lever has headroom. Committed on `feat/cost-levers` (a3d9119).
 - **`tools/baseline_summary.py`** — aggregates a batch into VARIANCE + GENERALITY
-  tables (not yet committed).
+  tables (committed ad5588d).
+- **`tools/backend_wrapper.py`** — the shim seam: `BackendWrapper` implements the
+  `Backend` Protocol, wraps a real backend, sees the full neutral history each
+  `.complete()`, applies a `transform` (lever; default identity), logs to
+  `wrap.jsonl`. Standalone (no fbbench import). **VERIFIED:** free fake-backend
+  test (`test_backend_wrapper.py`) + one real wrapped run
+  (`run_wrapped.py avro-03`, tier 4, $0.12) → n_messages 1→47 monotonic,
+  `unchanged=True` on all 24 calls, normal artifacts intact. Interception proven
+  with zero edits to the episode loop.
+- **`tools/run_wrapped.py`** — runs a real episode with the backend wrapped, by
+  monkeypatching `make_backend` on the in-process runner entry
+  (`fbbench.runner.__main__`, make_backend at `__main__.py:121`). `fb-bench run`
+  is a SUBPROCESS so can't be patched — must go through `python -m fbbench.runner`
+  (which needs NO host Go binary in image mode; the `--local` guard is the only
+  one, `__main__.py:98`).
 
 ### First smoke run (avro-03, haiku)
 `fb-bench run avro-03 --model claude-haiku-4-5` → **41 turns, tier_score 2**
@@ -138,8 +152,12 @@ dominant source** (likely exec/list_directory).
   Optionally (3) `OPENAI_BASE_URL` support.
 - **Working arrangement with Ze** still to confirm (PR into upstream vs long-lived
   branch vs co-author); repeat count the lab considers significant.
-- **Next build:** `BackendWrapper` pass-through scaffold (implements `.complete()`,
-  forwards `messages` unchanged) → proves interception without changing behavior.
-  Then no-cache switch, then lever #1 at the dispatch boundary.
+- **Next build:** ~~`BackendWrapper` pass-through scaffold~~ ✅ DONE (verified
+  end-to-end). NEXT = (1) no-cache switch (patch #1 for Ze) so caching-off clean
+  measurement is possible, then (2) **lever #1 (structured diagnosis)** as a
+  `transform` on the wrapper: rewrite `grade` tool-result crash reports to a
+  distilled signal → measure vs baseline, caching on/off, N repeats, savings must
+  beat the ±40–48% variance band. Reuse `wrap.jsonl` + `context_growth.py` to
+  quantify the token delta.
 - **Next measure:** once variance band is known, only trust lever savings that
   exceed it.
