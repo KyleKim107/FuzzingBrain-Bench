@@ -12,6 +12,37 @@ Complements the paste-in handoff (v3) and the auto-memory index (`MEMORY.md`).
 
 ---
 
+## 2026-07-11 — Session 2: patch #1 (no-cache switch)
+
+### Built this session
+- **Patch #1 — no-cache switch** (`fbbench/runner/backends/anthropic_backend.py`),
+  the first of the two agreed fbbench edits. Env-gated: `FBBENCH_NO_CACHE=1`
+  skips the `_with_cache(...)` call in `complete()` so every prompt token is
+  billed FRESH (1x) instead of riding in `cache_read` (0.1x). **Off by default**
+  — normal runs keep all three cache breakpoints, so Ze's behavior is unchanged.
+  Chose env-gate (not a CLI flag / ctor arg) because it's the smallest diff and
+  matches the existing `FBBENCH_*` convention (`FBBENCH_REPO`, `FBBENCH_IMAGE_PREFIX`).
+  This unblocks the caching-OFF half of every lever measurement.
+- **Verified offline** (`scratchpad/verify_nocache.py`, no API/$): stubbed
+  `_stream_once` to capture the exact payload handed to the SDK. DEFAULT →
+  system becomes a cacheable list block + last tool + last content block all carry
+  `cache_control`. `FBBENCH_NO_CACHE=1` → system stays a raw str, ZERO
+  `cache_control` anywhere, and `blocks == _to_blocks(...)` byte-for-byte (no
+  mutation). All assertions pass.
+
+### Next-session starting points (unchanged plan, patch #1 now done)
+- **Empirical confirm (optional, cheap):** one real haiku run with
+  `FBBENCH_NO_CACHE=1` → expect `cache_read_tokens == 0` in `wrap.jsonl` and a
+  visibly higher $ than the cached baseline (data-backs "caching hid the cost").
+- **Then lever #1 (structured diagnosis):** a `transform` on `BackendWrapper`
+  that rewrites `grade` tool-results containing a sanitizer report → distilled
+  signal. Measure vs baseline, caching ON *and* OFF (now possible), N repeats;
+  savings must beat the ±40–48% variance band. Reuse `wrap.jsonl` +
+  `context_growth.py` for the token delta.
+- **Patch #2 (later):** mixed-model cost accounting for lever 4.
+
+---
+
 ## 2026-07-05 — Session 1: setup, first real run, measurement rig
 
 ### Decisions locked this session

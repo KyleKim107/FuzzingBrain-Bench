@@ -25,6 +25,12 @@ class AnthropicBackend:
             max_retries=8)
         # Discovered per-model output ceiling (None until a 400 reveals it).
         self._max_tokens_cap: int | None = None
+        # Opt-in no-cache mode: when FBBENCH_NO_CACHE=1 we skip the prompt-cache
+        # breakpoints so every prompt token is billed fresh (1x) instead of
+        # riding in cache_read (0.1x). Off by default — normal runs keep caching.
+        # Purpose: measure the TRUE uncached $ cost of context growth, which
+        # caching otherwise hides (see thesis worklog, lever #2 motivation).
+        self._no_cache = os.environ.get("FBBENCH_NO_CACHE") == "1"
 
     def _to_blocks(self, messages: list[dict]) -> list[dict]:
         out = []
@@ -98,7 +104,8 @@ class AnthropicBackend:
         api_tools = [{"name": t["name"], "description": t["description"],
                       "input_schema": t["input_schema"]} for t in tools]
         blocks = self._to_blocks(messages)
-        system, api_tools, blocks = self._with_cache(system, api_tools, blocks)
+        if not self._no_cache:
+            system, api_tools, blocks = self._with_cache(system, api_tools, blocks)
         if self._max_tokens_cap is not None:
             max_tokens = min(max_tokens, self._max_tokens_cap)
         try:
