@@ -30,11 +30,22 @@ Complements the paste-in handoff (v3) and the auto-memory index (`MEMORY.md`).
   `cache_control` anywhere, and `blocks == _to_blocks(...)` byte-for-byte (no
   mutation). All assertions pass.
 
-### Next-session starting points (unchanged plan, patch #1 now done)
-- **Empirical confirm (optional, cheap):** one real haiku run with
-  `FBBENCH_NO_CACHE=1` → expect `cache_read_tokens == 0` in `wrap.jsonl` and a
-  visibly higher $ than the cached baseline (data-backs "caching hid the cost").
-- **Then lever #1 (structured diagnosis):** a `transform` on `BackendWrapper`
+### Empirical confirm (done — caching-OFF baseline point)
+`FBBENCH_NO_CACHE=1 python tools/run_wrapped.py avro-03 --model claude-haiku-4-5`
+→ tier 5 (SOLVED), 36 turns, **$0.794**, 69 s. `wrap.jsonl` (36 calls, all
+`unchanged=True` — wrapper still identity):
+- `cache_read_tokens == 0` AND `cache_write_tokens == 0` → caching fully off. ✅
+- `input_tokens = 770,299` (ALL fresh, billed 1x) + `output = 4,814`. Haiku
+  ($1/M in, $5/M out): 770,299·$1/M + 4,814·$5/M = **$0.794**, matches `total_usd`
+  to the cent → the whole bill is the fresh prompt mass.
+- **FINDING:** same avro-03 tier-5 solve costs **$0.156 mean cached vs $0.794
+  uncached (~5×)**. Caching hid ~80% of the true token cost — the context growth's
+  $ was riding in `cache_read` (0.1x). Confirms why both ON/OFF must be measured
+  and motivates lever #2. This is now the caching-OFF, identity baseline anchor
+  for avro-03 (n=1; needs repeats before it's a variance-cleared number).
+
+### Next-session starting points (unchanged plan, patch #1 now done + confirmed)
+- **Lever #1 (structured diagnosis):** a `transform` on `BackendWrapper`
   that rewrites `grade` tool-results containing a sanitizer report → distilled
   signal. Measure vs baseline, caching ON *and* OFF (now possible), N repeats;
   savings must beat the ±40–48% variance band. Reuse `wrap.jsonl` +
