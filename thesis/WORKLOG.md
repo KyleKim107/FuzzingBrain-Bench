@@ -90,17 +90,49 @@ context trimming is mostly worthless under caching"). The correct picture:
   runs succeed. (MCP challenge container needs the daemon; caching-OFF baseline
   earlier worked because Docker was up then.)
 
+### Lever #1 N=4 batch (identity vs lever1 x ON/OFF, avro-03/haiku)
+| cell | tier (n=4) | usd mean | usd range | turns | $/turn | cache break |
+|---|---|---|---|---|---|---|
+| identity/on | 4,4,4,5 | 0.106 | 0.060–0.153 | 22.0 | 0.0048 | none |
+| lever1/on | 4,4,4,5 | 0.165 | 0.109–0.258 | 36.5 | 0.0045 | none |
+| identity/off | 0,3,5,5 | 0.562 | 0.383–0.702 | 25.2 | 0.0223 | none |
+| lever1/off | 4,4,5,5 | 1.873 | 0.367–3.047 | 52.0 | 0.0360 | none |
+
+**Findings (honest):**
+1. **Structural, CONFIRMED at scale (all 16 runs):** lever #1 never breaks the
+   cache (`breaks == []` every run) and does not hurt QUALITY (tiers comparable;
+   lever1/off even avoided identity/off's one tier-0 fail — but n=4 noise).
+2. **Cost saving is NEGLIGIBLE.** Raw cell means are CONFOUNDED: the lever1 cells
+   happened to draw much longer trajectories (36.5 vs 22 turns ON; 52 vs 25 OFF),
+   and cost scales ~quadratically with turns when OFF, so lever1 looks pricier
+   though that's pure sampling. Controlling for it via **mechanical replay**
+   (apply lever1's transform to the FROZEN identity transcripts, no re-run):
+   saving is only **~$0.002–$0.010/episode OFF and <$0.001 ON**. The grade bucket
+   is small (~3–12%), arrives LATE (low persistence multiplier), and is few in
+   number → on the COST axis lever #1 is ~a no-op at bench scale.
+3. **Methodology:** turn-count variance here is 14–76 — even WORSE than the
+   ±40–48% band. Live $ comparison at n=4 is hopeless. → **Mechanical replay on a
+   frozen transcript is the correct primary tool for a lever's per-trajectory
+   cost effect** (removes the trajectory confound; the worklog anticipated this).
+   Live runs still needed for QUALITY/turn effects (path-dependent).
+
 ### Next-session starting points
-- **Measure lever #1** (the real run): `python tools/run_wrapped.py avro-03
-  --model claude-haiku-4-5 --lever lever1`, both with and without
-  `FBBENCH_NO_CACHE=1`, N repeats. Compare to the identity baselines
-  (cached mean $0.156; caching-OFF $0.794, n=1). Expect: modest $ savings (grade
-  is ~10% of context and arrives LATE so accumulation multiplier is low),
-  `cache_break_at` null throughout, and watch whether the cleaner signal shifts
-  QUALITY (class/site firing) — that's the axis caching can't erase.
-- Savings must beat the **±40–48% sampling variance band** → need repeats.
-- Then lever #3 (read_file size-threshold) and lever #2 (history pruning, the
-  one that DOES break cache — where the new instrumentation earns its keep).
+- **Build `tools/replay_lever.py`** — promote the ad-hoc mechanical-replay script
+  to a real tool: take a transcript + a lever, reconstruct the per-turn neutral
+  history, apply the lever, report exact token deltas under BOTH cache models
+  (OFF=1x; ON=1.25x-write + 0.1x-read-per-remaining-turn), plus cache-break
+  penalty. This becomes the primary cost-measurement path; live runs measure
+  quality/turns only.
+- **Lever #3 (read_file size-threshold)** — the real headroom: read_file is
+  33–53% of context and arrives THROUGHOUT (high persistence), unlike grade.
+  Sweep threshold T. Measure via replay first (cheap, clean), then a small live
+  batch for quality.
+- **Lever #2 (history pruning)** — the one that DOES break cache; here the
+  `cache_break_at`/`chars_after_break` instrumentation and the break-even math
+  earn their keep.
+- Keep lever #1 in the paper as a **certified cache-safe, quality-neutral, but
+  cost-negligible** result — it motivates WHY the bucket (grade vs read_file) and
+  the persistence (early vs late) matter, i.e. the trigger axis.
 
 ### Reminder for measurement design (updated)
 Primary regime = **caching ON** (that's how it's really run). OFF = mechanical
