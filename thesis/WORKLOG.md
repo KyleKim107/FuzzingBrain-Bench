@@ -68,6 +68,28 @@ context trimming is mostly worthless under caching"). The correct picture:
   dict AND dataclass result shapes; transform-level idempotency. Existing
   `test_backend_wrapper.py` still passes (schema change is additive).
 
+### Lever #1 smoke result (identity vs lever1, caching ON, n=1 each)
+| run | tier | usd | turns | out_tok | distill fires | chars_removed | cache_break |
+|---|---|---|---|---|---|---|---|
+| identity | 4 | 0.130 | 29 | 4,264 | 0 | 0 | **none** |
+| lever1 | 4 | 0.187 | 37 | 6,601 | 11 | 29,116 | **none** |
+
+- **Structural claims CONFIRMED:** `cache_break_at == None` on every call of
+  both runs → lever #1 never breaks the prompt cache (distills at the tail +
+  idempotent), even as distilled grades ACCUMULATE (call 27 −1820 → call 34
+  −3639 (2 grades) → call 37 −5459 (3 grades), all cache-safe). Lever fires
+  exactly when the first sanitizer grade arrives (call 27), −1820 chars/grade.
+  tier held at 4 → quality not hurt.
+- **Cost signal is NOISE at n=1:** lever1 cost MORE ($0.187 vs $0.130) purely
+  because that draw ran 8 more turns (37 vs 29) → more output tokens (never
+  cached, 5x), which dwarfs the grade-distillation saving (29k chars of input,
+  mostly at 0.1x cache_read). Textbook demonstration of the ±40–48% variance
+  lesson: **single-run $ comparison is meaningless; turn-count variance
+  dominates.** Need N repeats before trusting any lever-1 $ delta.
+- Env note: Docker daemon had stopped mid-session; `open -a Docker` + wait, then
+  runs succeed. (MCP challenge container needs the daemon; caching-OFF baseline
+  earlier worked because Docker was up then.)
+
 ### Next-session starting points
 - **Measure lever #1** (the real run): `python tools/run_wrapped.py avro-03
   --model claude-haiku-4-5 --lever lever1`, both with and without
