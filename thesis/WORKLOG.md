@@ -12,6 +12,82 @@ Complements the paste-in handoff (v3) and the auto-memory index (`MEMORY.md`).
 
 ---
 
+## 2026-07-13 — Session 3: caching economics correction + lever #1 built
+
+### Caching economics — a correction I had to make (READ THIS)
+Kyle pushed hard on "everyone runs with caching ON, so isn't cost-trimming
+pointless?" Working it through, I had **overstated** an earlier claim ("naive
+context trimming is mostly worthless under caching"). The correct picture:
+- LLM APIs are **stateless**: every turn resends the WHOLE history. A token that
+  enters at turn T and lives to turn N is billed **every** turn in between.
+- So a long-lived token's TRUE cost under caching is **not 0.1x** — it is
+  `1.25 (write once) + 0.1 x (N-T) reads`. Across ~30 turns that's ~**4.25x** its
+  size, not 0.1x. (Uncached it'd be ~31x, so caching still wins hugely — but the
+  absolute cost of persistent context is several times its size, NOT free.)
+- avro-03 cached $0.156 decomposes ~ **cache_read $0.07 + cache_write $0.05 +
+  output $0.024**. The biggest bucket is cache_read = the accumulated re-reading
+  of un-trimmed context. **Trimming DOES save real money**, even ON.
+- The catch is **cache-break**: removing tokens at history position P forces a
+  one-time re-write (1.25x) of everything after P. Trim near the HEAD = big
+  benefit, big penalty; near the TAIL = small both. → a where/when **break-even**,
+  which is exactly the worklog's "KEY axis = lever TRIGGERS" point.
+- **Reframed thesis question** (stronger + honest): not "levers cut cost" but
+  *"under caching (the realistic regime), which levers still pay, on which axis
+  (cost / quality / turns / output), and why?"* Caching discounts only the cost
+  axis; it does nothing for quality, turn count, or output tokens (output is
+  NEVER cached, always 5x). Lever 4 (model routing) is fully orthogonal to
+  caching. Corrected: measure caching ON as the PRIMARY regime, OFF as the
+  mechanical ceiling.
+- Corrected a second overstatement: the 5-min cache **TTL is NOT biting** in our
+  runs (69 s / 36 turns = ~2 s/turn, far under 5 min). It only matters for agents
+  with slow tools. And "LLM services run on Docker" was wrong — the Docker here
+  is THIS benchmark's tool sandbox, not a property of LLM serving.
+
+### Built this session
+- **`tools/levers.py`** — lever transforms for `BackendWrapper`. **Lever #1
+  (`structured_diagnosis`)**: fires by tool KIND (`grade`) when the result carries
+  a sanitizer report; distills the raw ASan/UBSan dump to high-signal lines
+  (crash headline + target-SOURCE stack frames + SUMMARY), dropping libFuzzer
+  banner, interceptor/harness/libc frames, hex addresses, BuildIds. Deterministic
+  parser = the "high-signal region" definition (no ML). Builds NEW objects for
+  changed messages, reuses the rest → honest pre/post + cache-prefix stability.
+  **Idempotent** (re-distilling an already-distilled tail is a no-op) — critical
+  so re-running it every turn does NOT churn the cache. Distills at ARRIVAL (the
+  tail), so lever #1 should **never break the cache** (`cache_break_at` stays
+  null); confirm empirically next run.
+- **`wrap.jsonl` schema extended** (`backend_wrapper.py`): added `chars_removed`,
+  `cache_break_at` + `chars_after_break` (consecutive post-transform prefix diff),
+  `stop_reason`, `n_tool_calls`, `duration_s`. So a lever's token cut, cache-break
+  penalty, turn productivity, and latency are all logged per call.
+- **`tools/run_wrapped.py`** — added `--lever <name>` (registry in `levers.py`;
+  default identity). Out-dir now `runs/wrapped/<lever>/<bug>/<model>/run-N` so
+  lever vs identity runs don't interleave.
+- **Verified offline** (`tools/test_levers.py`, no API/$): on REAL avro-03 grade
+  results — sanitizer grades distilled **~76% each** (2,385→566 chars), episode
+  grade mass **7,837→2,351 (70%)**; read_file + clean/empty grades **byte-identical**;
+  dict AND dataclass result shapes; transform-level idempotency. Existing
+  `test_backend_wrapper.py` still passes (schema change is additive).
+
+### Next-session starting points
+- **Measure lever #1** (the real run): `python tools/run_wrapped.py avro-03
+  --model claude-haiku-4-5 --lever lever1`, both with and without
+  `FBBENCH_NO_CACHE=1`, N repeats. Compare to the identity baselines
+  (cached mean $0.156; caching-OFF $0.794, n=1). Expect: modest $ savings (grade
+  is ~10% of context and arrives LATE so accumulation multiplier is low),
+  `cache_break_at` null throughout, and watch whether the cleaner signal shifts
+  QUALITY (class/site firing) — that's the axis caching can't erase.
+- Savings must beat the **±40–48% sampling variance band** → need repeats.
+- Then lever #3 (read_file size-threshold) and lever #2 (history pruning, the
+  one that DOES break cache — where the new instrumentation earns its keep).
+
+### Reminder for measurement design (updated)
+Primary regime = **caching ON** (that's how it's really run). OFF = mechanical
+ceiling. Always log & compare on FOUR axes now, not just $: **cost, quality
+(tier_score), turns, output tokens** — caching neutralizes part of cost but none
+of the other three.
+
+---
+
 ## 2026-07-11 — Session 2: patch #1 (no-cache switch)
 
 ### Built this session
